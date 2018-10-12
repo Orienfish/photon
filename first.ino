@@ -3,7 +3,9 @@
  * Author: Xiaofan Yu
  * Date: 10/01/2018
  */
-#include "MQTT.h"
+#include "application.h"
+#include "lib/MQTT.h"
+// #include "lib/sd-card-library-photon-compat.h"
 
 void callback(char* topic, byte* payload, unsigned int length);
 
@@ -32,7 +34,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 
 void setup() {
-	Serial.begin(9600);
+	Serial.begin(115200);
     // connect to the RPi
 	// client_id, user, passwd, willTopic, willQoS, willRetain, willMessage, cleanSession, version?
     client.connect("photon", "xiaofan", "0808", 0, client.QOS2, 0, 0, true, client.MQTT_V311);
