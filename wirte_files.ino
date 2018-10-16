@@ -4,8 +4,8 @@
 * Date: 10/13/2018
 */
 #include "application.h"
-// #include "lib/MQTT.h"
-#include "lib/sd-card-library-photon-compat.h"
+// #include "MQTT.h"
+#include "sd-card-library-photon-compat.h"
 
 /* global variables for SD card */
 File myFile;
@@ -23,7 +23,7 @@ const uint8_t misoPin = A4;
 const uint8_t clockPin = A3;
 
 // specify the file to write
-char filename[] = "extracted_subject1.txt"; 
+const char filename[] = "boost.txt";
 
 /*
  * testCard - check cardinfo: type, volume, lists of file 
@@ -99,51 +99,82 @@ void testCard()
 }
 
 /*
+ * init_card - init SD card, used most often in read and write
+ */
+void init_card() {
+	// Initialize HARDWARE SPI with user defined chipSelect
+	if (!SD.begin(chipSelect)) {
+		Serial.println("error");
+		return;
+	}
+
+	Serial.println("done");
+}
+
+/*
+ * check the validation of read byte, to get rid of interfere
+ */
+bool check_validation(char byte) {
+	if (byte >= '0' && byte <= '9')
+		return 1;
+	if (byte == '.')
+		return 1;
+	if (byte == '<')
+		return 1;
+	if (byte == '-')
+		return 1;
+	if (byte == '\n' || byte == '\r' || byte == ' ')
+		return 1;
+	return 0;
+}
+
+/*
  * write_file - write file to SD card and read it back if necessary
  */
 void write_file()
 {
-	Serial.print("Initializing SD card...");
-
-	// Initialize HARDWARE SPI with user defined chipSelect
-	if (!SD.begin(chipSelect)) {
-		Serial.println("initialization failed!");
-		return;
-	}
-	//  Comment out above lines and uncomment following lines to use SOFTWARE SPI
-	/* // Initialize SOFTWARE SPI
-	if (!SD.begin(mosiPin, misoPin, clockPin, chipSelect)) {
-	Serial.println("initialization failed!");
-	return;
-	} */
-
-	Serial.println("initialization done.");
-
 	// open the file. note that only one file can be open at a time,
 	// so you have to close this one before opening another.
-	myFile = SD.open(filename, FILE_WRITE);
+	// change the mode to write from start each time!
+	myFile = SD.open(filename, O_WRITE | O_CREAT | O_TRUNC);
 
 	// if the file opened okay, write to it:
+	bool flag = 0;
 	if (myFile) {
-		// receive one byte each time from USB serial
-		while (Serial.available()) {
-			// write one byte to SD card
-			myFile.print(Serial.read());
+		while (Serial.available()) { 
+			// receive one byte each time from USB serial
+			char byte = Serial.read();
+			delay(5);
+			Serial.write(byte); // echo back after write to sd card
+								// a very large latency here. The echo back has never been right...
+							    // but this is enough in synchronize
+			if (byte == 's') { // start writing
+				flag = 1;
+				continue;
+			}
+			else if (byte == 'f') // finish writing
+				break;
+			if (flag && check_validation(byte)) {
+				myFile.write(byte);
+			}
 		}
 		// close the file:
 		myFile.close();
-		Serial.println("done.");
 	}
 	else {
 		// if the file didn't open, print an error:
-		Serial.println("error opening test.txt");
+		Serial.println("error opening txt");
 	}
+}
 
-	// for debug use. re-open the file for reading:
+/*
+* check-content - check the content of the file just written, for debug use
+*/
+void check_content() {
 	myFile = SD.open(filename);
 	if (myFile) {
 		// read from the file until there's nothing else in it:
-		Serial.println("Content for written file:");
+		Serial.println("Content for file");
 		while (myFile.available()) {
 			Serial.write(myFile.read());
 		}
@@ -152,20 +183,19 @@ void write_file()
 	}
 	else {
 		// if the file didn't open, print an error:
-		Serial.println("error opening test.txt");
+		Serial.println("error opening file");
 	}
 }
 
 void setup() {
-	Serial.begin(115200);
-
-	testCard();
+	// make it simple, open and write
+	Serial.begin(9600);
+	
+	// testCard();
+	init_card(); // init first
 	write_file();
-	testCard();
+	// check_content();
 }
 
 void loop() {
-	// nothing happens after setup
-	// Serial.println("loopping");
-	while (1);
 }

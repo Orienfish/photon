@@ -15,14 +15,19 @@ void callback(char* topic, byte* payload, unsigned int length);
 byte server[] = { 137,110,160,230 }; // specify the ip address of RPi
 MQTT client(server, 1883, 60, callback); // ip, port, keepalive, callback, maxpacketsize=255
 
-uint16_t sample_rate[] = {200, 220, 240, 260, 280, 300, 320, 340, 360, 380, 400};
-uint16_t bw[] = {200, 700, 5000};
-uint8_t batch_len = 36;
+const uint16_t sample_rate[] = {200, 220, 240, 260, 280, 300, 320, 340, 360, 380, 400};
+const uint16_t bw[] = {200, 700, 5000};
+const uint8_t batch_len = 36;
 // should pay attention to the length of batch data string
 char batch_data[] = "1.5663333 2.0231032 4.368568 -0.7739354 0.6374992 36494.797 11866.794 -0.57553095 1583.8704 -0.54552644 8.296114 1.6720939 0.16802186 1336.8407 46681.445 0.37339416 -1.5721303 -1.3606994 0.2258775 1.0056456 9.547066 0.020614887 0.49007025 1465.7668 0.35888034 0.09255244 0.64808124 10.55743 48605.066 0.58297986 0.40643385 1089.607 0.0567788 -1.4010533 0.13189445 9.742854";
 
 /* glabal variables for SD card */
 File myFile;
+
+// set up variables using the SD utility library functions:
+Sd2Card card;
+SdVolume volume;
+SdFile root;
 
 // SOFTWARE SPI pin configuration - modify as required
 // The default pins are the same as HARDWARE SPI
