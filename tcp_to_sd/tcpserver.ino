@@ -108,7 +108,7 @@ void setup()
 						// write to SD card
 						myFile.write(c);
 						// echo all available bytes back to the client
-						delay(5); // don't be that fast
+						delay(10); // don't be that fast
 						server.write(c);
 					}
 				}

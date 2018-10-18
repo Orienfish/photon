@@ -23,7 +23,7 @@ const uint8_t misoPin = A4;
 const uint8_t clockPin = A3;
 
 // specify the file to write
-const char filename[] = "boost.txt";
+const char filename[] = "data.txt";
 
 /*
  * testCard - check cardinfo: type, volume, lists of file 
@@ -134,28 +134,27 @@ bool check_validation(char byte) {
 void write_file()
 {
 	// open the file. note that only one file can be open at a time,
-	// so you have to close this one before opening another.
-	// change the mode to write from start each time!
 	myFile = SD.open(filename, O_WRITE | O_CREAT | O_TRUNC);
 
 	// if the file opened okay, write to it:
 	bool flag = 0;
 	if (myFile) {
-		while (Serial.available()) { 
-			// receive one byte each time from USB serial
-			char byte = Serial.read();
-			delay(5);
-			Serial.write(byte); // echo back after write to sd card
-								// a very large latency here. The echo back has never been right...
-							    // but this is enough in synchronize
-			if (byte == 's') { // start writing
-				flag = 1;
-				continue;
-			}
-			else if (byte == 'f') // finish writing
-				break;
-			if (flag && check_validation(byte)) {
-				myFile.write(byte);
+		while (1) {
+			if (Serial.available()) {
+				// receive one byte each time from USB serial
+				char byte = Serial.read();
+				// delay(5);
+				Serial.write(byte); // echo back
+				// add 's' as start sign, 'f' as stop sign, to secure the message
+				if (byte == 's') { // start writing
+					flag = 1;
+					continue;
+				}
+				else if (byte == 'f') // finish writing
+					break;
+				if (flag && check_validation(byte)) {
+					myFile.write(byte);
+				}
 			}
 		}
 		// close the file:
@@ -176,7 +175,8 @@ void check_content() {
 		// read from the file until there's nothing else in it:
 		Serial.println("Content for file");
 		while (myFile.available()) {
-			Serial.write(myFile.read());
+			char byte = myFile.read();
+			Serial.write(byte);
 		}
 		// close the file:
 		myFile.close();
@@ -191,10 +191,10 @@ void setup() {
 	// make it simple, open and write
 	Serial.begin(9600);
 	
-	// testCard();
+	testCard();
 	init_card(); // init first
-	write_file();
-	// check_content();
+	// write_file();
+	check_content();
 }
 
 void loop() {
