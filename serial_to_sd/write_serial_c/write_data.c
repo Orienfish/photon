@@ -133,6 +133,7 @@ void receive_echo(int fd)
 	}
 	printf("%c", ret_val); // receive usage info from photon
 	fflush(stdout);
+	// printf("%c\r\n", ret_val); // immediately print to terminal
 	return;
 }
 
