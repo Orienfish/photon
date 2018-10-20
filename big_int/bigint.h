@@ -9,6 +9,7 @@
 #define __BIGINT_H_
 
 #include "application.h"
+#include "spark_wiring_usbserial.h"
 
 #define MAX_INT_BYTE 20
 class BIGINT {
@@ -33,7 +34,7 @@ public:
 	uint8_t add(uint16_t num);
 	uint8_t add(BIGINT num);
 	uint8_t multiply(uint8_t num);
-	uint8_t muliply(uint16_t num); 
+	uint8_t multiply(uint16_t num); 
 };
 
 #endif // __BIGINT_H_
