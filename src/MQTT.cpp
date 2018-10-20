@@ -329,6 +329,51 @@ bool MQTT::loop() {
     return false;
 }
 
+/*
+ * loop_QoS2 - the loop after pub a QoS2 msg
+ * Return - -1 connect error
+ *          0 waiting for pubrec
+ *          1 pub completed
+ */
+uint8_t MQTT::loop_QoS2() {
+    if (isConnected()) {
+        unsigned long t = millis();
+        if ((t - lastInActivity > this->keepalive*1000UL) || (t - lastOutActivity > this->keepalive*1000UL)) {
+            if (pingOutstanding) {
+                _client.stop();
+                return -1;
+            } else {
+                buffer[0] = MQTTPINGREQ;
+                buffer[1] = 0;
+                _client.write(buffer,2);
+                lastOutActivity = t;
+                lastInActivity = t;
+                pingOutstanding = true;
+                return 0;
+            }
+        }
+        if (_client.available()) {
+            uint8_t llen;
+            uint16_t len = readPacket(&llen);
+            uint16_t msgId = 0;
+            uint8_t *payload;
+            if (len > 0) { // receive sth
+                lastInActivity = t;
+                uint8_t type = buffer[0]&0xF0;
+                if (type == MQTTPUBREC) { // check for the situation that QoS2 receive PUBREC, should return PUBREL
+                    msgId = (buffer[2] << 8) + buffer[3];
+                    this->publishRelease(msgId);
+                    return 1; // pub is finished!
+                } else if (type == MQTTPINGRESP) {
+                    pingOutstanding = false;
+                }
+            }
+        }
+        return 0;
+    }
+    return -1;
+}
+
 bool MQTT::publish(const char* topic, const char* payload) {
     return publish(topic, (uint8_t*)payload, strlen(payload), false, QOS0, NULL);
 }
