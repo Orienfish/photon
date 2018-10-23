@@ -176,7 +176,7 @@ public:
     bool subscribe(const char *topic, EMQTT_QOS);
     bool unsubscribe(const char *topic);
     bool loop();
-    uint8_t loop_QoS2();
+    uint8_t loop_QoS2(); // functions add especially for waiting PUBREC
     bool isConnected();
 };
 
