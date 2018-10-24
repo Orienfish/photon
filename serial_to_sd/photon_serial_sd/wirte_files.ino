@@ -23,7 +23,7 @@ const uint8_t misoPin = A4;
 const uint8_t clockPin = A3;
 
 // specify the file to write
-const char filename[] = "data.txt";
+const char filename[] = "boost.txt";
 
 /*
  * testCard - check cardinfo: type, volume, lists of file 
@@ -191,10 +191,12 @@ void setup() {
 	// make it simple, open and write
 	Serial.begin(9600);
 	
-	testCard();
+	// testCard();
+	// check_content();
+	
 	init_card(); // init first
-	// write_file();
-	check_content();
+	write_file();
+	
 }
 
 void loop() {
