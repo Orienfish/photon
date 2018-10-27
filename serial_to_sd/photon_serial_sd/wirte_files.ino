@@ -107,8 +107,7 @@ void init_card() {
 		Serial.println("error");
 		return;
 	}
-
-	Serial.println("done");
+	Serial.println("SD init done");
 }
 
 /*
@@ -191,12 +190,12 @@ void setup() {
 	// make it simple, open and write
 	Serial.begin(9600);
 	
-	// testCard();
-	// check_content();
-	
-	init_card(); // init first
-	write_file();
-	
+	// init_card(); // init first
+	// write_file();
+
+	testCard();	
+	init_card();
+	check_content();
 }
 
 void loop() {
