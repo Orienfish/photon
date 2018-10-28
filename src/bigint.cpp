@@ -63,6 +63,14 @@ BIGINT::BIGINT(uint32_t num) {
 }
 
 /*
+ * Copy BIGINT to BIGINT
+ */ 
+BIGINT::BIGINT(const BIGINT &src) {
+	for (uint8_t i = 0; i < MAX_INT_BYTE; ++i)
+		myinteger[i] = src.get_byte(i);
+}
+
+/*
  * Demise Function
  */
 BIGINT::~BIGINT() {}
@@ -70,7 +78,7 @@ BIGINT::~BIGINT() {}
 /*
  * Print the current integer
  */ 
-void BIGINT::print_int() {
+void BIGINT::print_int() const {
 	for (uint8_t i = 0; i < MAX_INT_BYTE; ++i) {
 		Serial.print(myinteger[i]);
 		Serial.print(" ");
@@ -81,7 +89,7 @@ void BIGINT::print_int() {
 /*
  * Get the uint8_t at index i
  */ 
-uint8_t BIGINT::get_byte(uint8_t i) {
+uint8_t BIGINT::get_byte (uint8_t i) const {
 	if (i >= MAX_INT_BYTE)
 		return 0;
 	return myinteger[i];
@@ -140,6 +148,15 @@ void BIGINT::change_value(uint32_t num) {
 	}
 	for (; i < MAX_INT_BYTE; ++i)
 		myinteger[i] = 0;
+}
+
+
+/*
+ * copy BIGINT to BIGINT
+ */ 
+void BIGINT::change_value(BIGINT src) {
+	for (uint8_t i = 0; i < MAX_INT_BYTE; ++i)
+		myinteger[i] = src.get_byte(i); // copy byte by byte
 }
 
 /*
@@ -225,4 +242,49 @@ uint8_t BIGINT::multiply(uint16_t num) {
 	if (addon > 0)
 		return 1; // overflow
 	return 0;
+}
+
+/*
+ * Overload operator +
+ */
+BIGINT BIGINT::operator+(uint8_t num) {
+	BIGINT res(*this);
+	res.add((uint8_t)num);
+	return res;
+}
+
+/*
+ * Overload operator +
+ */
+BIGINT BIGINT::operator+(uint16_t num) {
+	BIGINT res(*this);
+	res.add((uint16_t)num);
+	return res;
+}
+
+/*
+ * Overload operator +
+ */
+BIGINT BIGINT::operator+(BIGINT num) {
+	BIGINT res(*this);
+	res.add(num);
+	return res;
+}
+
+/*
+ * Overload operator *
+ */
+BIGINT BIGINT::operator*(uint8_t num) {
+	BIGINT res(*this);
+	res.multiply((uint8_t)num);
+	return res;
+}
+
+/*
+ * Overload operator *
+ */
+BIGINT BIGINT::operator*(uint16_t num) {
+	BIGINT res(*this);
+	res.multiply((uint16_t)num);
+	return res;
 }

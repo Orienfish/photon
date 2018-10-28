@@ -59,21 +59,18 @@ const uint8_t clockPin = A3;
 // specify the file storing data, extracted_subject1.txt
 const char filename[] = "data.txt";
 uint32_t position = 0; // used to remember the last reading position when open filename
+// specify the file recording sleep time, tmp.txt
+const char tmpname[] = "tmp.txt";
+char write_buffer[20];
 
 // string and float to hold float input
 String inString = "";
 float inFloat;
-
 uint8_t batch_data[MAX_BATCH_LENGTH]; // send batch, can not use string cuz it is too long
 uint32_t len_of_batch; // current length of batch_data
 char send_info[MAX_INFO_LENGTH];
-
 unsigned long prev_time, cur_time; // to store measured time
 long sleep_time; // to store time, should be signed
-
-// specify the file recording sleep time, tmp.txt
-const char tmpname[] = "tmp.txt";
-char write_buffer[20];
 
 /*
  * Receive Message - Not used here
@@ -99,7 +96,7 @@ void init_card() {
  * Return - 0 fail, exceed maximum length
  *			1 success
  */
-uint8_t batch_append(float data) {
+inline uint8_t batch_append(float data) {
 	if (len_of_batch >= MAX_BATCH_LENGTH-2) // no placy to append, return failure
 		return 0;
 	uint8_t *data_byte = (uint8_t *)&data; // convert the pointer
@@ -111,7 +108,7 @@ uint8_t batch_append(float data) {
 /*
  * read_line - read one line from myFile, each line read first READ_CNT_PER_LINE floats in 36 floats
  */
-void read_line() {
+inline void read_line() {
 	inString = ""; // clear string
 	// read READ_CNT_PER_LINE float from one line
 	for (int readcnt = 0; readcnt < READ_CNT_PER_LINE && myFile.available(); readcnt++) {

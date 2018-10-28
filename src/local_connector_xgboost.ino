@@ -29,7 +29,7 @@ const uint8_t NUM_OF_SR = 11; // number of sameple rate choices
 const uint8_t NUM_OF_BW = 3; // number of bandwidth choices
 const uint8_t READ_CNT_PER_LINE = 12; // number of floats read from each line
 const uint8_t MAX_COND_CNT = 100; // maximum number of conditions in each devices 
-const uint16_t MAX_BATCH_LENGTH = 9602; // maximum length of sending batch
+const uint16_t MAX_BATCH_LENGTH = 8002; // maximum length of sending batch
 const uint8_t MAX_INFO_LENGTH = 100; // maximum length of sending info, e.g. bw and sample rate
 
 // define all categories of topics
@@ -62,26 +62,25 @@ const uint8_t clockPin = A3;
 // specify the file storing data, extracted_subject1.txt
 const char filename[] = "data.txt";
 uint32_t position = 0; // used to remember the last reading position when open filename
-
-// string and float to hold float input
-String inString = "";
-float inFloat;
-
-uint8_t batch_data[MAX_BATCH_LENGTH]; // send batch, can not use string cuz it is too long
-uint32_t len_of_batch; // current length of batch_data
-char send_info[MAX_INFO_LENGTH];
-
-unsigned long prev_time, cur_time; // to store measured time
-long sleep_time; // to store time, should be signed
-
 // specify the file recording sleep time, tmp.txt
 const char tmpname[] = "tmp.txt";
 char write_buffer[20]; // to store the info sent to RPi
-
 // specify the file containing xgboost parameters
 const char boostname[] = "boost.txt";
 float cond[READ_CNT_PER_LINE][MAX_COND_CNT]; // to store the conditions
 uint16_t len_cond[READ_CNT_PER_LINE] = {0}; // length of conditions in each line
+
+// string and float to hold float input
+String inString = "";
+float inFloat;
+float inLine[READ_CNT_PER_LINE]; 
+uint8_t batch_data[MAX_BATCH_LENGTH]; // send batch, can not use string cuz it is too long
+uint32_t len_of_batch; // current length of batch_data
+char send_info[MAX_INFO_LENGTH];
+unsigned long prev_time, cur_time; // to store measured time
+long sleep_time; // to store time, should be signed
+BIGINT r_list[READ_CNT_PER_LINE]; // r_list
+
 /*
  * Receive Message - Not used here
  */
@@ -101,27 +100,14 @@ void init_card() {
 	Serial.println("SD card init done");
 }
 
-/*
- * batch_append - append a new float data to the sending batch
- * Return - 0 fail, exceed maximum length
- *			1 success
- */
-uint8_t batch_append(float data) {
-	if (len_of_batch >= MAX_BATCH_LENGTH-2) // no placy to append, return failure
-		return 0;
-	uint8_t *data_byte = (uint8_t *)&data; // convert the pointer
-	batch_data[len_of_batch++] = *(data_byte); // append lower byte to send batch
-	batch_data[len_of_batch++] = *(data_byte + 1); // append higher byte to send batch
-	return 1;
-}
 
 /*
  * read_line - read one line from myFile, each line read first READ_CNT_PER_LINE floats in 36 floats
  */
-void read_line() {
+inline void read_line() {
 	inString = ""; // clear string
 	// read READ_CNT_PER_LINE float from one line
-	for (int readcnt = 0; readcnt < READ_CNT_PER_LINE && myFile.available(); readcnt++) {
+	for (uint8_t readcnt = 0; readcnt < READ_CNT_PER_LINE && myFile.available(); readcnt++) {
 		// read until finish reading one float
 		char byte = myFile.read();
 		while (byte != ' ' && byte != '\n') {
@@ -133,7 +119,7 @@ void read_line() {
 		// finish reading one float, convert it
 		float inFloat = inString.toFloat();
 		DEBUG_PRINTF("%f ", inFloat);
-		batch_append(inFloat); // append to the sending batch
+		inLine[readcnt] = inFloat; // append to the sending batch
 		inString = ""; // clear inString
 	}
 	// if read until end of line, move on
@@ -143,6 +129,28 @@ void read_line() {
 			break;
 	}
 	return;
+}
+
+/*
+ * search_sorted - convert the input float to an index and append it to batch_data
+ * 				   input float is in inLine[12]
+ */
+inline void search_sorted() {
+	BIGINT temp; // init to 0
+	for (uint8_t i = 0; i < READ_CNT_PER_LINE; ++i) {
+		uint8_t res_index;
+		for (res_index = 0; res_index < len_cond[i]; ++res_index)
+			if (inLine[i] <= cond[i][res_index])
+				break;
+		temp.add(r_list[i] * res_index);
+	}
+	// print temp for debugging
+	/*temp.print_int();
+	Serial.printf("\r\n");*/
+
+	// append the BIGINT to send batch
+	for (uint8_t i = 0; i < MAX_INT_BYTE; ++i)
+		batch_data[len_of_batch++] = temp.get_byte(i);
 }
 
 /*
@@ -157,6 +165,7 @@ uint8_t read_file(uint16_t cur_sr) {
 	if (myFile) {
 		for (int j = 0; j < cur_sr && myFile.available(); ++j) { // read sample_rate lines from myFile
 			read_line();
+			search_sorted();
 			DEBUG_PRINTLN(j); // debug print the line number
 		}
 		
@@ -229,7 +238,7 @@ void send_sleep_time() {
 /*
  * cond_insert - insert inFloat into cond array in order
  */
-void cond_insert(uint8_t index, float inFloat) {
+inline void cond_insert(uint8_t index, float inFloat) {
 	uint8_t i, j;
 	for (i = 0; i < len_cond[index]; ++i) {
 		if (cond[index][i] == inFloat) // has already exist, directly return
@@ -241,15 +250,16 @@ void cond_insert(uint8_t index, float inFloat) {
 			break;
 		}
 	}
-	cond[index][i] = inFloat; // insert here
+	cond[index][i] = inFloat; // insert herem, i is the right position
 	len_cond[index]++;
 	
-	/*Serial.printf("%d %d\r\n", index, len_cond[index]);
+	// print the array after insert
+	DEBUG_PRINTF("%d %d %f\r\n", index, len_cond[index], inFloat);
 	for (j = 0; j < len_cond[index]; ++j) {
-		Serial.printf("%f ", cond[index][j]);
+		DEBUG_PRINTF("%f ", cond[index][j]);
 	}
-	Serial.printf("\r\n\r\n");
-	*/
+	DEBUG_PRINTF("\r\n\r\n");
+
 	return;
 }
 
@@ -260,50 +270,59 @@ void read_boost_cond() {
 	myFile = SD.open(boostname);
 	if (myFile) {
 		inString = "";
-		uint8_t flag = 0; // flag of whether reading a valid float or index
-						  // 0 - index, 1 - float
+		uint8_t flag = 1; // flag of whether reading a valid float or index
+						  // 0 - invalid, 1 - index, 2 - float
 		uint8_t index;
 
-		// int readcnt = 0;
 		while (myFile.available()) { // read until end
 			char byte = myFile.read();
-			if (flag && byte == '\n') { // end of a float
-				float inFloat = inString.toFloat();
-
-				// Serial.printf("%d %f\r\n", index, inFloat);
-
-				if (index < READ_CNT_PER_LINE) // only take first 12 devices
+			if (byte == '\n') { // end of a line
+				if (flag == 2) { // end of a valid float
+					float inFloat = inString.toFloat();
+					DEBUG_PRINTF("%d %f\r\n", index, inFloat);
 					cond_insert(index, inFloat);
+				}
 				inString = ""; // clear
-				flag = 0; // change to read index state
-				// readcnt++;
+				flag = 1; // change to read index state
 			}
-			else if (!flag && byte == '<') {
+			else if (byte == '<' && flag == 1) { // finish reading an index
 				index = inString.toInt();
+				// if in the first 12 devices, continue read; else, invalid
+				flag = index < READ_CNT_PER_LINE ? 2 : 0; 
 				inString = "";
-				flag = 1; // change to read float state
 			}
-			else
+			else if (flag) // if valid reading
 				inString += byte; // reading index or float to inString
 		}
 		myFile.close();
 
 		// print what we read
-		/*
 		uint8_t i, j;
 		Serial.println("read cond finish");
 		for (i = 0; i < READ_CNT_PER_LINE; ++i) {
 			Serial.println(i);
 			Serial.println(len_cond[i]);
-			for (j = 0; j < len_cond[i]; ++j) {
+			/*for (j = 0; j < len_cond[i]; ++j)
 				Serial.printf("%f ", cond[i][j]);
-			}
-			Serial.printf("\r\n");
+			Serial.printf("\r\n");*/
 		}
-		*/
 	} 
 	else {
 		Serial.println("error opening file");
+	}
+}
+
+/*
+ * get_r_list - get the base number after each dimension
+ *				must be called after read_boost_cond()
+ */
+void get_r_list() {
+	BIGINT temp((uint8_t)1);
+	Serial.println("r_list:");
+	for (uint8_t i = 0; i < READ_CNT_PER_LINE; ++i) {
+		r_list[i].change_value(temp);
+		temp.multiply(len_cond[i]);
+		r_list[i].print_int(); // print r_list
 	}
 }
 
@@ -314,10 +333,10 @@ void setup() {
 	Serial.begin(9600);
 	init_card(); // init sd card
 	read_boost_cond(); // read boost cond
+	get_r_list();
 
 	// connect to the RPi
 	// client_id, user, passwd, willTopic, willQoS, willRetain, willMessage, cleanSession, version?
-	/*
 	client.connect("photon", "xiaofan", "0808", 0, client.QOS2, 0, 0, true, client.MQTT_V311);
 	Serial.println("Connect!");
 
@@ -337,7 +356,7 @@ void setup() {
 			}
 
 			// clear tmp.txt
-			myFile = SD.open(tmpname, O_WRITE | O_TRUNC);
+			myFile = SD.open(tmpname, O_WRITE | O_CREAT | O_TRUNC);
 			if (myFile)
 				myFile.close();
 			else
@@ -375,7 +394,7 @@ void setup() {
 
 				prev_time = millis(); // update prev_time
 				Serial.printf("prev_time %ld\r\n", prev_time);
-
+				
 				if (end) // read until the end of file, ending this round of bandwidth and sample rate
 					break;
 			}
@@ -384,7 +403,6 @@ void setup() {
 	}
 
 	client.disconnect();
-	*/
 }
 
 /*
