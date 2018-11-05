@@ -2,7 +2,7 @@
 This folder contains the python subscriber to receive data from photon and several test data folders under various conditions.
 
 ## Prerequisites
-I use the Ubuntu 18.04LTS. To start with, you need to install mosquitto, paho-mqtt and Wondershaper. Mosquitto is a popular MQTT server while paho-mqtt is a convenient Python library for MQTT. Wondershaper is a network traffic shaping tool for Linux. All of the installations are pretty easy.
+I use the Ubuntu 18.04 LTS. To start with, you need to install mosquitto, paho-mqtt and Wondershaper. Mosquitto is a popular MQTT server while paho-mqtt is a convenient Python library for MQTT. Wondershaper is a network traffic shaping tool for Linux. All of the installations are pretty easy.
 
 To install and configure mosquitto, follow the steps [here](https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-the-mosquitto-mqtt-messaging-broker-on-ubuntu-18-04). You need to configure several files under /etc/mosquitto/ for advanced settings like the log and the user's password.
 
