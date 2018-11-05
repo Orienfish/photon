@@ -5,6 +5,11 @@
  * Author: Xiaofan Yu
  * Date: 10/13/2018
  */
+#define NUM_OF_SR 11 // number of sameple rate choices
+#define NUM_OF_BW 3 // number of bandwidth choices
+#define FEATURE_NUM 12 // number of floats read from each line
+#define MAX_BATCH_LENGTH 9600 // maximum length of sending batch
+#define MAX_INFO_LENGTH 100 // maximum length of sending info, e.g. bw and sample rate
 #include "application.h"
 #include "MQTT.h"
 #include "sd-card-library-photon-compat.h"
@@ -23,11 +28,6 @@
 // const variables in experiments
 const int sample_rate[] = {200, 220, 240, 260, 280, 300, 320, 340, 360, 380, 400};
 const int bw[] = {200, 700, 5000};
-const uint8_t NUM_OF_SR = 11; // number of sameple rate choices
-const uint8_t NUM_OF_BW = 3; // number of bandwidth choices
-const uint8_t READ_CNT_PER_LINE = 12; // number of floats read from each line
-const uint16_t MAX_BATCH_LENGTH = 9602; // maximum length of sending batch
-const uint8_t MAX_INFO_LENGTH = 100; // maximum length of sending info, e.g. bw and sample rate
 
 // define all categories of topics
 const char data_topic[] = "house.hand"; // for sending data
@@ -39,7 +39,7 @@ const char sync_topic[] = "sync"; // for sync, send current time
 void callback(char* topic, byte* payload, unsigned int length);
 
 byte server[] = { 137,110,160,230 }; // specify the ip address of RPi
-MQTT client(server, 1883, 60, callback, MAX_BATCH_LENGTH+100); // ip, port, keepalive, callback, maxpacketsize=
+MQTT client(server, 1883, 60, callback, MAX_BATCH_LENGTH+10); // ip, port, keepalive, callback, maxpacketsize=
 
 /* glabal variables for SD card */
 File myFile;
@@ -61,15 +61,17 @@ const char filename[] = "data.txt";
 uint32_t position = 0; // used to remember the last reading position when open filename
 // specify the file recording sleep time, tmp.txt
 const char tmpname[] = "tmp.txt";
-char write_buffer[20];
+char write_buffer[MAX_INFO_LENGTH];
 
 // string and float to hold float input
 String inString = "";
 float inFloat;
-uint8_t batch_data[MAX_BATCH_LENGTH]; // send batch, can not use string cuz it is too long
-uint32_t len_of_batch; // current length of batch_data
+uint8_t batch_data[MAX_BATCH_LENGTH+10]; // send batch, can not use string cuz it is too long
+uint32_t len_of_batch = 0; // current length of batch_data
 char send_info[MAX_INFO_LENGTH];
 unsigned long prev_time, cur_time; // to store measured time
+unsigned long read_start, read_time; // to record the start and time of reading
+unsigned long ready_time; // total time of reading
 long sleep_time; // to store time, should be signed
 
 /*
@@ -106,12 +108,12 @@ inline uint8_t batch_append(float data) {
 }
 
 /*
- * read_line - read one line from myFile, each line read first READ_CNT_PER_LINE floats in 36 floats
+ * read_line - read one line from myFile, each line read first readcnt floats in 36 floats
  */
-inline void read_line() {
+inline void read_line(unsigned int readcnt) {
 	inString = ""; // clear string
-	// read READ_CNT_PER_LINE float from one line
-	for (int readcnt = 0; readcnt < READ_CNT_PER_LINE && myFile.available(); readcnt++) {
+	// read readcnt float from one line
+	for (int i = 0; i < readcnt && myFile.available(); ++i) {
 		// read until finish reading one float
 		char byte = myFile.read();
 		while (byte != ' ' && byte != '\n') {
@@ -146,8 +148,9 @@ uint8_t read_file(uint16_t cur_sr) {
 	myFile.seek(position); // locate the last time of reading
 	if (myFile) {
 		for (int j = 0; j < cur_sr && myFile.available(); ++j) { // read sample_rate lines from myFile
-			read_line();
-			DEBUG_PRINTLN(j); // debug print the line number
+			read_start = millis();
+			read_line(FEATURE_NUM);
+			read_time += millis() - read_start;
 		}
 		
 		// update position
@@ -192,16 +195,6 @@ void send_sleep_time() {
 			char byte = myFile.read();
 			// Serial.write(byte); // for reference
 			batch_data[len_of_batch++] = (uint8_t)byte; // append lower byte to send batch
-
-			// in case the length exceeds MAX_BATCH_LENGTH
-			if (len_of_batch >= MAX_BATCH_LENGTH-2) {
-				if (client.isConnected()) { // send one time
-					client.publish(tmp_topic, batch_data, len_of_batch, false, client.QOS2, false, NULL);
-					while (!client.loop_QoS2()); // block and wait for pub done
-					Serial.println("publish one part of tmp.txt successfully"); // note success in publishing
-				}
-				len_of_batch = 0;
-			}
 		}
 		// final pub
 		if (client.isConnected()) {
@@ -252,11 +245,14 @@ void setup() {
 
 			// start reading!
 			prev_time = millis();
-			Serial.printf("prev_time %ld\n", prev_time);
+			// 
+		Serial.printf("prev_time %ld\n", prev_time);
 			while (1) {
 				len_of_batch = 0; // clear sending batch
+				read_time = 0; // clear and ready for cumulative add
 				// read sample_rate lines, file is opened in this function
 				uint8_t end = read_file(sample_rate[sample_index]);
+				ready_time = millis() - prev_time;
 					
 				// publish
 				if (client.isConnected()) {
@@ -267,21 +263,23 @@ void setup() {
 				}
 				
 				cur_time = millis();
-				Serial.printf("cur_time %ld\r\n", cur_time);
+				// Serial.printf("cur_time %ld\r\n", cur_time);
 				sleep_time = 1000 - (cur_time - prev_time);
 				if (sleep_time > 0) {
 					delay(sleep_time); // delay sleep_time milliseconds
-					sprintf(write_buffer, "S\t%ld\t%ld\r\n", cur_time, sleep_time);
+					sprintf(write_buffer, "S\tprev:%ld\tcur:%ld\tsleep:%ld\tlen:%d\tr:%ld\tready:%ld\r\n", 
+						prev_time, cur_time, sleep_time, len_of_batch, read_time, ready_time);
 				}
 				else {
-					sprintf(write_buffer, "N\t%ld\t%ld\r\n", cur_time, sleep_time);
+					sprintf(write_buffer, "N\tprev:%ld\tcur:%ld\tsleep:%ld\tlen:%d\tr:%ld\tready:%ld\r\n", 
+						prev_time, cur_time, sleep_time, len_of_batch, read_time, ready_time);
 					Serial.println("N");
 				}
 				write_sleep_time(write_buffer);
 				Serial.print(write_buffer);
 
 				prev_time = millis(); // update prev_time
-				Serial.printf("prev_time %ld\r\n", prev_time);
+				// Serial.printf("prev_time %ld\r\n", prev_time);
 
 				if (end) // read until the end of file, ending this round of bandwidth and sample rate
 					break;
