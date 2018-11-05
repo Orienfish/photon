@@ -9,9 +9,9 @@ To install and configure mosquitto, follow the steps [here](https://www.digitalo
 To install paho-mqtt 1.4.0, see the tutorials [here](https://pypi.org/project/paho-mqtt/).
 
 To install Wondershaper, simply do:
-'''
+```
 sudo apt-get install wondershaper
-'''
+```
 
 ## Subscriber
 This Python version program subscribes 4 topics: **"house.hand", "tmp", "parameter", "sync"**.
