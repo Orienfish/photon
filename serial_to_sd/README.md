@@ -1,5 +1,5 @@
 # Write Files to SD Card
-This folder contains code on photon and on Ubuntu Linux to write .txt file to the SD card connected with photon. In our testing, this is important because instead of obtaining data from sensors, we read data from existed files in the current stage.
+This folder contains code on photon and on Ubuntu Linux to write txt file to the SD card connected with photon. In our testing, this is important because instead of obtaining data from sensors, we read data from existed files in the current stage.
 
 ## Prerequisites
 I use the Ubuntu 18.04 LTS. Nothing is required except [Particle CLI tools](https://docs.particle.io/tutorials/developer-tools/cli/) to compile code and flash to photon.
@@ -19,9 +19,9 @@ particle flash --usb your_file_name.bin
 ```
 
 ## Ubuntu Part
-Simply open the serial port and transmit the .txt files byte by byte. Contain a lot of exception handling, e.g. error in opening port or file.
+Simply open the serial port and transmit the txt files byte by byte. Contain a lot of exception handling, e.g. error in opening port or file.
 
-Change the port name on line 9 of write_data.c. "FILE_NAME" on line 10 of write_data.c is to specify the path of the .txt file on Linux. "LINE_CNT" on line 12 configure the maximum lines written to photon SD card, for limiting the transmission time.
+Change the port name on line 9 of write_data.c. "FILE_NAME" on line 10 of write_data.c is to specify the path of the txt file on Linux. "LINE_CNT" on line 12 configure the maximum lines written to photon SD card, for limiting the transmission time.
 
 Compile and start the program by the following commands:
 ```
