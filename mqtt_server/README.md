@@ -1,4 +1,4 @@
-# MQTT Server on a Linux System
+# MQTT Server on a Linux System and the Time Consumption Test
 This folder contains the python subscriber to receive data from photon and several test data folders under various conditions.
 
 ## Prerequisites
