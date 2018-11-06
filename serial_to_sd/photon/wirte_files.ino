@@ -4,7 +4,6 @@
 * Date: 10/13/2018
 */
 #include "application.h"
-// #include "MQTT.h"
 #include "sd-card-library-photon-compat.h"
 
 /* global variables for SD card */
@@ -113,7 +112,7 @@ void init_card() {
 /*
  * check the validation of read byte, to get rid of interfere
  */
-bool check_validation(char byte) {
+inline bool check_validation(char byte) {
 	if (byte >= '0' && byte <= '9')
 		return 1;
 	if (byte == '.')
@@ -142,7 +141,6 @@ void write_file()
 			if (Serial.available()) {
 				// receive one byte each time from USB serial
 				char byte = Serial.read();
-				// delay(5);
 				Serial.write(byte); // echo back
 				// add 's' as start sign, 'f' as stop sign, to secure the message
 				if (byte == 's') { // start writing
@@ -151,9 +149,8 @@ void write_file()
 				}
 				else if (byte == 'f') // finish writing
 					break;
-				if (flag && check_validation(byte)) {
+				if (flag && check_validation(byte))
 					myFile.write(byte);
-				}
 			}
 		}
 		// close the file:
@@ -190,9 +187,11 @@ void setup() {
 	// make it simple, open and write
 	Serial.begin(9600);
 	
+	// The followings are for writing files
 	// init_card(); // init first
 	// write_file();
 
+	// The followings are for testing file content
 	testCard();	
 	init_card();
 	check_content();

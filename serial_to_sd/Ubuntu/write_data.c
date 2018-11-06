@@ -9,7 +9,7 @@
 const char DEV_NAME[] = "/dev/ttyACM0";
 const char FILE_NAME[] = "/home/xiaofan/Desktop/RaspberryPi_Measurements/data/extracted_subject1.txt";
 const int MAX_BUFFER_SIZE = 1024;
-const int LINE_CNT = 400; // the lines that write to sd card
+const int LINE_CNT = 1000; // the lines that write to sd card
 const speed_t SPEED = B9600;
 
 int set_interface_attribs (int fd, int speed, int parity);
@@ -195,9 +195,6 @@ void write_file(int fd, const char *filename)
 			return;
 		}
 
-		// printf("%c", readByte); // check reading
-		// fflush(stdout); // flush out immediately
-
 		if (write(fd, &readByte, 1) < 0) // try to write this line to serial port
 		{
 			fprintf(stderr, "write buffer to serial port error!");
@@ -205,6 +202,7 @@ void write_file(int fd, const char *filename)
 			return;
 		}
 		receive_echo(fd); // receive the echo
+		// compute current reading lines and break out if read LINE_CNT lines
 		if (readByte == '\n')
 			lines++;
 		if (lines >= LINE_CNT)

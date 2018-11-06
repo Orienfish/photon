@@ -63,9 +63,6 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 
-		// printf("%c", readByte); // check reading
-		// fflush(stdout); // flush out immediately
-
 		if (send(sockfd, &readByte, 1, 0) < 0) // send byte
 		{
 			fprintf(stderr, "send error!");
