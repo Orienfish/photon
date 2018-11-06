@@ -12,7 +12,7 @@ Based the [SD card library](https://github.com/mumblepins/sd-card-library), the 
 
 Before the transmission, remeber to modify "filename" on line 25 of wirte_files.ino, making it what you want to name your file on the SD card. Commenting out certain parts in setup() can decide whether to write files or to test the existed file content.
 
-Compile and flash it to photon using the following commands:
+Compile and flash it to photon using the following commands in the "photon" directory:
 ```
 particle compile p --saveTo your_file_name.bin
 particle flash --usb your_file_name.bin
@@ -23,7 +23,7 @@ Simply open the serial port and transmit the txt files byte by byte. Contain a l
 
 Change the port name on line 9 of write_data.c. "FILE_NAME" on line 10 of write_data.c is to specify the path of the txt file on Linux. "LINE_CNT" on line 12 configure the maximum lines written to photon SD card, for limiting the transmission time.
 
-Compile and start the program by the following commands:
+Compile and start the program by the following commands in the "Ubuntu" directory:
 ```
 gcc write_data.c -o write
 sudo ./write // you need sudo right to access the serial port
