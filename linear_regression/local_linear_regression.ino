@@ -160,6 +160,7 @@ uint8_t softmax_index(float *readLine, float para_array[FEATURE_NUM][CLASSES_NUM
  *			   para_array: theta, its size is features*classes
  *			   features, classes: size of matrixes
  *			   softmax: returned softmax array, its size is 1*classes
+ * Return - max_index: the index with the max value
  */
 uint8_t softmax_array(float *readLine, float para_array[FEATURE_NUM][CLASSES_NUM], 
 	unsigned int features, unsigned int classes, float *softmax) {
