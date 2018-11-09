@@ -22,9 +22,9 @@
 // size of neural network
 #define N_IN FEATURE_NUM // nodes as input
 #define N_OUT CLASSES_NUM // nodes as output
-#define N_1 60 // nodes in the first layer
-#define N_2 60 // nodes in the second layer
-#define BATCH_LEN 2 // the number of input samples for one time
+#define N_1 90 // nodes in the first layer
+#define N_2 90 // nodes in the second layer
+#define BATCH_LEN 1 // the number of input samples for one time
 
 // const variables in experiments
 const int sample_rate[] = {200, 220, 240, 260, 280, 300, 320, 340, 360, 380, 400};
