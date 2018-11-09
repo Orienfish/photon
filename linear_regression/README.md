@@ -5,3 +5,12 @@ The test results in [another folder](https://github.com/Orienfish/photon/tree/ma
 
 ## MQTT Library
 The MQTT library refers to contributions in this [repo](https://github.com/hirotakaster/MQTT)
+
+## Test Result
+The space our code will take is as follows:
+
+|text  | data | bss   |
+|------|------|-------|
+|30140 | 172  | 3908 |
+
+The time consumption is terrible for now. To compute the network above of 200 samples, the time consumed is 32ms while time consumption to compute 400 samples is 63ms!

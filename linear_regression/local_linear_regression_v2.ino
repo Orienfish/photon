@@ -198,7 +198,7 @@ uint8_t read_data_file(int cur_sample_rate) {
 			comp_start = millis();
 			read_time += comp_start - read_start; // cumulative add
 			// compute argmax-index data for this line
-			vector_multiply(readLine, FEATURE_NUM, lr_para, CLASSES_NUM, FEATURE_NUM, 
+			vector_multiply(readLine, FEATURE_NUM, (float *)lr_para, CLASSES_NUM, FEATURE_NUM, 
 				outputLine, CLASSES_NUM);
 			// pack the result into send batch
 			pack(outputLine, CLASSES_NUM);
