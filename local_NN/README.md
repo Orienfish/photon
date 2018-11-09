@@ -8,8 +8,8 @@ The MQTT library refers to contributions in this [repo](https://github.com/hirot
 ## Test Result
 Suppose N_1 = N_2 = N, BATCH_LEN = 1, the maximum N we can have is 90. The space our code will take is as follows:
 
-text    data    bss <br>
-30652   172     46964 <br>
+text  | data | bss 
+30652 | 172  | 46964 
 
 Letting N = 95 will crash down.
 
