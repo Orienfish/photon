@@ -10,10 +10,10 @@
 
 #define MAX_RAND_NUM 1000000 // maximum number in random()
 #define MAX_INFO_LENGTH 100 // maximum length of sending info, e.g. bw and sample rate
-#define SEND_TIMES 1000 // the interval in ms of each iteration
+#define SEND_TIMES 1000 // the times that we do sending experiments
 #define FEATURE_NUM 12 // number of features, linear regression input
 #define CLASSES_NUM 5 // number of classes, linear regression output
-#define BATCH_LEN 1 // the number of input samples for one time
+#define BATCH_LEN 200 // the number of input samples for one time
 
 // const variables in experiments
 const float sample_data[FEATURE_NUM] = {1.5663333, 2.0231032, 4.368568, -0.7739354,
@@ -23,13 +23,13 @@ const unsigned int copy_size = FEATURE_NUM * sizeof(float);
 // global variables for MQTT
 byte server[] = { 137,110,160,230 }; // specify the ip address of RPi
  // ip, port, keepalive, callback, maxpacketsize
-MQTT client(server, 1883, 60, NULL, max(SEND_TIMES, MAX_INFO_LENGTH)+10);
+MQTT client(server, 1883, 60, NULL, max(BATCH_LEN, MAX_INFO_LENGTH)+10);
 
 // global array to store float data for linear regression
 float lr_para[FEATURE_NUM][CLASSES_NUM]; // parameters for linear regression
-float lr_in[BATCH_LEN][FEATURE_NUM], lr_out[BATCH_LEN][CLASSES_NUM]; // to store a line
+float lr_in[BATCH_LEN][FEATURE_NUM], lr_out[BATCH_LEN][CLASSES_NUM];
 // glabal array to store send batch
-uint8_t batch_data[SEND_TIMES+10]; // send batch
+uint8_t batch_data[BATCH_LEN+10]; // send batch
 unsigned int len_of_batch = 0; // len of send batch
 // global array to store assistant info
 char time_measure[MAX_INFO_LENGTH];
@@ -128,9 +128,10 @@ void setup() {
 	client.connect("photon", "xiaofan", "0808", 0, client.QOS2, 0, 0, true, client.MQTT_V311);
 	Serial.println("Connect!");
 
-	total_comp_time = len_of_batch = 0;
+	total_comp_time = 0;
 	// run the experiments for SEND_TIMES times
 	for (int send_num = 0; send_num < SEND_TIMES; ++send_num) {
+		len_of_batch = 0;
 		// read sample_rate lines
 		read_matrix((float *)lr_in, BATCH_LEN, FEATURE_NUM);
 		// do local computation
@@ -141,17 +142,16 @@ void setup() {
 			(float *)lr_out, BATCH_LEN, CLASSES_NUM);
 		// pack the result into send batch
 		pack((float *)lr_out, BATCH_LEN, CLASSES_NUM);
+		// publish computation result
+		if (client.isConnected()) {
+			client.publish("data", batch_data, len_of_batch, false, client.QOS2, false, NULL);
+			while (!client.loop_QoS2()); // block and wait for pub done
+		}
+		Serial.printf("publish %d bytes successfully!\r\n", len_of_batch);
 		// update total time
 		total_comp_time += millis() - comp_start; // cumulative add
 		Serial.println(send_num);
 	}
-	// publish computation result
-	if (client.isConnected()) {
-		client.publish("data", batch_data, len_of_batch, false, client.QOS2, false, NULL);
-		while (!client.loop_QoS2()); // block and wait for pub done
-	}
-	Serial.printf("publish %d bytes successfully!\r\n", len_of_batch);
-
 	// compute the avg time consumption and send it
 	comp_avg = (float)total_comp_time / SEND_TIMES;
 	sprintf(time_measure, "comp avg:%f\r\n", comp_avg);

@@ -17,7 +17,7 @@
 #define N_OUT CLASSES_NUM // nodes as output
 #define N_1 80 // nodes in the first layer
 #define N_2 80 // nodes in the second layer
-#define BATCH_LEN 1 // the number of input samples for one time
+#define BATCH_LEN 2 // the number of input samples for one time
 
 // const variables in experiments
 const float sample_data[FEATURE_NUM] = {1.5663333, 2.0231032, 4.368568, -0.7739354,
@@ -27,14 +27,14 @@ const unsigned int copy_size = FEATURE_NUM * sizeof(float);
 // global variables for MQTT
 byte server[] = { 137,110,160,230 }; // specify the ip address of RPi
 // ip, port, keepalive, callback, maxpacketsize
-MQTT client(server, 1883, 60, NULL, max(SEND_TIMES, MAX_INFO_LENGTH)+10);
+MQTT client(server, 1883, 60, NULL, max(SEND_TIMES*BATCH_LEN, MAX_INFO_LENGTH)+10);
 
 // nodes for neural networks
 float nn_in[BATCH_LEN][N_IN], nn_out[BATCH_LEN][N_OUT]; // input and output nodes
 float nn_l1[BATCH_LEN][N_1], nn_l2[BATCH_LEN][N_2]; // middle layer nodes in nn
 float nn_w1[N_IN][N_1], nn_w2[N_1][N_2], nn_w3[N_2][N_OUT]; // weights between layers
 // glabal array to store send batch
-uint8_t batch_data[SEND_TIMES+10]; // send batch
+uint8_t batch_data[SEND_TIMES*BATCH_LEN+10]; // send batch
 unsigned int len_of_batch = 0; // len of send batch
 // global array to store time measurements
 char time_measure[MAX_INFO_LENGTH];
